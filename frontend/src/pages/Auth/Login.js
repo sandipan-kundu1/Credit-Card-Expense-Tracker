@@ -54,6 +54,10 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     try {
+      // Prevent multiple rapid clicks
+      if (loading) return;
+      
+      setLoading(true);
       const backendUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
       const googleAuthUrl = `${backendUrl}/api/auth/google`;
       console.log('Redirecting to Google OAuth:', googleAuthUrl);
@@ -61,6 +65,7 @@ const Login = () => {
     } catch (error) {
       console.error('Google OAuth error:', error);
       setError('Failed to initiate Google login');
+      setLoading(false);
     }
   };
 

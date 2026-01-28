@@ -53,6 +53,7 @@ router.post('/', authenticateToken, [
   body('expiryMonth').isInt({ min: 1, max: 12 }).withMessage('Expiry month must be between 1 and 12'),
   body('expiryYear').isInt({ min: new Date().getFullYear() }).withMessage('Expiry year must be current year or later'),
   body('creditLimit').isFloat({ min: 100 }).withMessage('Credit limit must be at least $100'),
+  body('currentBalance').optional().isFloat({ min: 0 }).withMessage('Current balance must be 0 or greater'),
   body('interestRate').optional().isFloat({ min: 0, max: 100 }).withMessage('Interest rate must be between 0 and 100')
 ], async (req, res) => {
   try {
@@ -71,6 +72,7 @@ router.post('/', authenticateToken, [
       expiryMonth,
       expiryYear,
       creditLimit,
+      currentBalance,
       interestRate,
       color
     } = req.body;
@@ -85,6 +87,14 @@ router.post('/', authenticateToken, [
       return res.status(400).json({ message: 'A card with this number already exists' });
     }
 
+    // Validate that current balance doesn't exceed credit limit
+    const balance = parseFloat(currentBalance) || 0;
+    const limit = parseFloat(creditLimit);
+    
+    if (balance > limit) {
+      return res.status(400).json({ message: 'Current balance cannot exceed credit limit' });
+    }
+
     // Create new credit card
     const card = new CreditCard({
       userId: req.user._id,
@@ -93,7 +103,8 @@ router.post('/', authenticateToken, [
       cardType,
       expiryMonth,
       expiryYear,
-      creditLimit,
+      creditLimit: limit,
+      currentBalance: balance,
       interestRate: interestRate || 18.5,
       color: color || '#1976d2'
     });

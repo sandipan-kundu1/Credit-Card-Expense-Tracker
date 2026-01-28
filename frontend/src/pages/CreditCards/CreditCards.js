@@ -41,10 +41,12 @@ const CreditCards = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuCardId, setMenuCardId] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     cardName: '',
     cardNumber: '',
@@ -52,6 +54,7 @@ const CreditCards = () => {
     expiryMonth: '',
     expiryYear: '',
     creditLimit: '',
+    currentBalance: '',
     interestRate: '18.5',
     color: '#1976d2'
   });
@@ -76,17 +79,45 @@ const CreditCards = () => {
     }
   };
 
+  const handleEditCard = (cardId) => {
+    const card = cards.find(c => c._id === cardId);
+    setSelectedCard(card);
+    setFormData({
+      cardName: card.cardName,
+      cardNumber: card.cardNumber,
+      cardType: card.cardType,
+      expiryMonth: card.expiryMonth,
+      expiryYear: card.expiryYear,
+      creditLimit: card.creditLimit,
+      currentBalance: card.currentBalance,
+      interestRate: card.interestRate,
+      color: card.color
+    });
+    setIsEditing(true);
+    setEditDialogOpen(true);
+    handleMenuClose();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await cardsAPI.addCard(formData);
-      setCards([...cards, response.data.card]);
-      setDialogOpen(false);
+      if (isEditing) {
+        const response = await cardsAPI.updateCard(selectedCard._id, formData);
+        setCards(cards.map(card => 
+          card._id === selectedCard._id ? response.data.card : card
+        ));
+        setEditDialogOpen(false);
+        toast.success('Credit card updated successfully!');
+      } else {
+        const response = await cardsAPI.addCard(formData);
+        setCards([...cards, response.data.card]);
+        setDialogOpen(false);
+        toast.success('Credit card added successfully!');
+      }
       resetForm();
-      toast.success('Credit card added successfully!');
     } catch (error) {
-      console.error('Add card error:', error);
-      toast.error(error.response?.data?.message || 'Failed to add credit card');
+      console.error('Card operation error:', error);
+      toast.error(error.response?.data?.message || 'Failed to save credit card');
     }
   };
 
@@ -132,9 +163,12 @@ const CreditCards = () => {
       expiryMonth: '',
       expiryYear: '',
       creditLimit: '',
+      currentBalance: '',
       interestRate: '18.5',
       color: '#1976d2'
     });
+    setIsEditing(false);
+    setSelectedCard(null);
   };
 
   const handleMenuClick = (event, cardId) => {
@@ -312,7 +346,7 @@ const CreditCards = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItemComponent onClick={handleMenuClose}>
+        <MenuItemComponent onClick={() => handleEditCard(menuCardId)}>
           <Edit sx={{ mr: 1 }} />
           Edit Card
         </MenuItemComponent>
@@ -321,6 +355,72 @@ const CreditCards = () => {
           Deactivate Card
         </MenuItemComponent>
       </Menu>
+
+      {/* Edit Card Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Credit Card</DialogTitle>
+        <form onSubmit={handleSubmit}>
+          <DialogContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Card Name"
+                  value={formData.cardName}
+                  onChange={(e) => setFormData({ ...formData, cardName: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Credit Limit"
+                  type="number"
+                  value={formData.creditLimit}
+                  onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
+                  inputProps={{ min: 100 }}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Interest Rate (%)"
+                  type="number"
+                  value={formData.interestRate}
+                  onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
+                  inputProps={{ min: 0, max: 100, step: 0.1 }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="body2" gutterBottom>
+                  Card Color
+                </Typography>
+                <Box display="flex" gap={1} flexWrap="wrap">
+                  {cardColors.map((color) => (
+                    <Box
+                      key={color}
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        backgroundColor: color,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        border: formData.color === color ? '3px solid #000' : '1px solid #ccc',
+                      }}
+                      onClick={() => setFormData({ ...formData, color })}
+                    />
+                  ))}
+                </Box>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">Update Card</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
       {/* Add Card Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -396,6 +496,17 @@ const CreditCards = () => {
                   onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
                   inputProps={{ min: 100 }}
                   required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Current Balance"
+                  type="number"
+                  value={formData.currentBalance}
+                  onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
+                  inputProps={{ min: 0 }}
+                  helperText="Enter existing balance on this card"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
