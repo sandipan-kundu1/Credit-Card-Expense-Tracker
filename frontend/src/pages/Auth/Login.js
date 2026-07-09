@@ -23,7 +23,6 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -33,20 +32,16 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
       navigate('/dashboard');
-    } else {
-      setError(result.error);
     }
     
     setLoading(false);
@@ -64,7 +59,6 @@ const Login = () => {
       window.location.href = googleAuthUrl;
     } catch (error) {
       console.error('Google OAuth error:', error);
-      setError('Failed to initiate Google login');
       setLoading(false);
     }
   };
@@ -98,12 +92,6 @@ const Login = () => {
           <Typography variant="body2" color="textSecondary" align="center" sx={{ mb: 3 }}>
             Sign in to manage your credit card expenses
           </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
-          )}
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField

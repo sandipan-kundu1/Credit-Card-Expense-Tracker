@@ -212,7 +212,7 @@ const Analytics = () => {
               onChange={(e) => setSelectedYear(e.target.value)}
               label="Year"
             >
-              {Array.from({ length: 5 }, (_, i) => (
+              {Array.from({ length: 7 }, (_, i) => (
                 <MenuItem key={2020 + i} value={2020 + i}>
                   {2020 + i}
                 </MenuItem>
